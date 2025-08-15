@@ -1,0 +1,24 @@
+{
+  "name": "api-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.31.4",
+    "hono": "^4.4.6",
+    "postgres": "^3.4.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.22.8",
+    "tsx": "^4.20.4",
+    "typescript": "^5.4.5"
+  }
+}

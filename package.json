@@ -1,0 +1,8 @@
+{
+  "name": "cortex-monorepo",
+  "private": true,
+  "scripts": {
+    "api": "pnpm --filter api-server",
+    "web": "pnpm --filter web-dashboard"
+  }
+}

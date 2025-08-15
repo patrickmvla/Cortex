@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext"],
+    "types": ["bun-types"],
+    "baseUrl": ".",
+    "paths": {
+      "drizzle-schema": ["../../packages/drizzle-schema/src"]
+    }
+  },
+  "include": ["src/**/*.ts", "*.ts"],
+  "references": [{ "path": "../../packages/drizzle-schema" }]
+}
