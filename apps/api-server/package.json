@@ -12,11 +12,15 @@
   "dependencies": {
     "@hono/zod-validator": "^0.7.2",
     "@neondatabase/serverless": "^1.0.1",
+    "@pinecone-database/pinecone": "^6.1.2",
     "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.31.4",
+    "groq-sdk": "^0.30.0",
     "hono": "^4.4.6",
+    "pdf2md-js": "^1.0.8",
     "postgres": "^3.4.4",
+    "voyageai": "^0.0.5",
     "zod": "^4.0.17"
   },
   "devDependencies": {

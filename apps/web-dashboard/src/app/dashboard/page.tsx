@@ -20,13 +20,14 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface StreamMessage {
-  type: "plan" | "response";
+  type: 'plan' | 'response' | 'tool-start' | 'tool-end';
   data: string;
 }
 
 export default function DashboardPage() {
   const [plan, setPlan] = useState<string[]>([]);
   const [response, setResponse] = useState("");
+  const [toolMessages, setToolMessages] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
 
@@ -41,6 +42,7 @@ export default function DashboardPage() {
     setIsStreaming(true);
     setResponse("");
     setPlan([]);
+    setToolMessages([]);
 
     const res = await api.query.$post({
       json: {
@@ -72,6 +74,8 @@ export default function DashboardPage() {
             setPlan((prev) => [...prev, message.data]);
           } else if (message.type === "response") {
             setResponse((prev) => prev + message.data);
+          } else if (message.type === "tool-start" || message.type === "tool-end") {
+            setToolMessages((prev) => [...prev, message.data]);
           }
         } catch (error) {
           console.error("Failed to parse stream message:", line, error);
@@ -115,7 +119,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               {plan.length > 0 ? (
-                <ul className="list-disc pl-5 text-muted-foreground">
+                <ul className="list-disc pl-5 text-muted-foreground space-y-2">
                   {plan.map((step, index) => (
                     <li key={index}>{step}</li>
                   ))}
@@ -124,6 +128,14 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground">
                   The AIs step-by-step plan will be shown here.
                 </p>
+              )}
+               {toolMessages.length > 0 && (
+                <div className="mt-4 border-t pt-4">
+                  <h3 className="font-semibold mb-2">Tool Activity:</h3>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    {toolMessages.map((msg, i) => <p key={i}>{msg}</p>)}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -175,12 +187,7 @@ export default function DashboardPage() {
             <Button type="submit" size="icon" disabled={isStreaming}>
               <Send className="w-4 h-4" />
             </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              disabled={isStreaming}
-            >
+            <Button type="button" size="icon" variant="ghost" disabled={isStreaming}>
               <Paperclip className="w-4 h-4" />
             </Button>
           </div>
