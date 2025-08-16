@@ -20,10 +20,16 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "drizzle-schema": ["../../packages/drizzle-schema/src"]
+      "drizzle-schema": ["../../packages/drizzle-schema/src"],
+      "api-server": ["../api-server/src/index"],
+      "api-client": ["../../packages/api-client/src"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"],
-  "references": [{ "path": "../../packages/drizzle-schema" }]
+  "references": [
+    { "path": "../../packages/drizzle-schema" },
+    { "path": "../api-server" },
+    { "path": "../../packages/api-client" }
+  ]
 }

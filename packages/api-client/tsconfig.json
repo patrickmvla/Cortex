@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext"],
+    "composite": true,
+    "paths": {
+      "api-server": ["../../apps/api-server/src"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../../apps/api-server" }]
+}
