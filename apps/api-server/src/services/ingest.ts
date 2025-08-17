@@ -1,5 +1,6 @@
 import { chunkText } from "../lib/chunker";
 import { ragService } from "./rag";
+import Groq from "groq-sdk";
 
 interface JinaReadResult {
   title: string;
@@ -11,16 +12,53 @@ interface JinaReadResponse {
   data: JinaReadResult;
 }
 
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+const enrichmentSystemPrompt = `
+You are an expert at extracting key information. For the given text chunk, provide a one-sentence summary and a list of 3-5 relevant keywords.
+Respond ONLY with a valid JSON object in the following format:
+{
+  "summary": "A one-sentence summary of the text.",
+  "keywords": ["keyword1", "keyword2", "keyword3"]
+}
+`;
+
+interface EnrichedMetadata {
+  summary: string;
+  keywords: string[];
+}
+
 class IngestService {
   private apiKey: string;
   private readerUrl = "https://r.jina.ai/";
 
   constructor() {
     // Get your Jina AI API key for free: https://jina.ai/?sui=apikey
-    if (!process.env.JINA_API_KEY) {
-      throw new Error("Missing JINA_API_KEY environment variable");
+    if (!process.env.JINA_API_KEY || !process.env.GROQ_API_KEY) {
+      throw new Error("Missing JINA_API_KEY or GROQ_API_KEY environment variable");
     }
     this.apiKey = process.env.JINA_API_KEY;
+  }
+
+  private async enrichChunk(chunk: string): Promise<EnrichedMetadata> {
+    try {
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          { role: "system", content: enrichmentSystemPrompt },
+          { role: "user", content: chunk },
+        ],
+        model: "llama3-8b-8192",
+        response_format: { type: "json_object" },
+      });
+      const content = chatCompletion.choices[0]?.message?.content || "{}";
+      return JSON.parse(content);
+    } catch (error) {
+      console.error("Error enriching chunk:", error);
+      // Return empty metadata on failure
+      return { summary: "", keywords: [] };
+    }
   }
 
   public async processUrl(url: string): Promise<void> {
@@ -47,11 +85,23 @@ class IngestService {
         return;
       }
 
-      // 1. Chunk the parsed content
       const chunks = chunkText(content);
+      
+      // Enrich each chunk with metadata
+      const enrichedChunks = await Promise.all(chunks.map(async (chunk, index) => {
+        const metadata = await this.enrichChunk(chunk);
+        return {
+          text: chunk,
+          metadata: {
+            ...metadata,
+            sourceUrl: url,
+            chunkNumber: index,
+          }
+        };
+      }));
 
-      // 2. Embed and store the chunks
-      await ragService.embedAndStore(chunks, { sourceUrl: url });
+      // Embed and store the enriched chunks
+      await ragService.embedAndStore(enrichedChunks);
 
     } catch (error) {
       console.error(`Error ingesting document from ${url}:`, error);

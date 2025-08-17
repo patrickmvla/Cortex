@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Paperclip, Send } from "lucide-react";
+import { Paperclip, Send, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
@@ -20,15 +20,17 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface StreamMessage {
-  type: 'plan' | 'response' | 'tool-start' | 'tool-end';
-  data: string;
+  type: 'plan' | 'response' | 'tool-start' | 'tool-end' | 'context';
+  data: any;
 }
 
 export default function DashboardPage() {
   const [plan, setPlan] = useState<string[]>([]);
   const [response, setResponse] = useState("");
-  const [toolMessages, setToolMessages] = useState<string[]>([]);
+  const [finalContext, setFinalContext] = useState("");
+  const [validationResponse, setValidationResponse] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
 
   const form = useForm<FormData>({
@@ -38,11 +40,40 @@ export default function DashboardPage() {
     },
   });
 
+  const { watch } = form;
+  const currentPrompt = watch("prompt");
+
+  async function handleValidate() {
+    setIsValidating(true);
+    setValidationResponse("");
+
+    const res = await api.validate.$post({
+      json: {
+        prompt: currentPrompt,
+        context: finalContext,
+      },
+    });
+
+    if (!res.body) return;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let done = false;
+
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
+      const chunk = decoder.decode(value, { stream: true });
+      setValidationResponse((prev) => prev + chunk);
+    }
+    setIsValidating(false);
+  }
+
   async function onSubmit(values: FormData) {
     setIsStreaming(true);
     setResponse("");
     setPlan([]);
-    setToolMessages([]);
+    setFinalContext("");
+    setValidationResponse("");
 
     const res = await api.query.$post({
       json: {
@@ -64,7 +95,7 @@ export default function DashboardPage() {
       buffer += decoder.decode(value, { stream: true });
 
       const lines = buffer.split("\n");
-      buffer = lines.pop() || ""; // Keep the last partial line in the buffer
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
         if (line.trim() === "") continue;
@@ -74,8 +105,8 @@ export default function DashboardPage() {
             setPlan((prev) => [...prev, message.data]);
           } else if (message.type === "response") {
             setResponse((prev) => prev + message.data);
-          } else if (message.type === "tool-start" || message.type === "tool-end") {
-            setToolMessages((prev) => [...prev, message.data]);
+          } else if (message.type === "context") {
+            setFinalContext(message.data);
           }
         } catch (error) {
           console.error("Failed to parse stream message:", line, error);
@@ -83,7 +114,6 @@ export default function DashboardPage() {
       }
     }
     setIsStreaming(false);
-    form.reset();
   }
 
   return (
@@ -95,7 +125,7 @@ export default function DashboardPage() {
             id="deep-research-mode"
             checked={deepResearch}
             onCheckedChange={setDeepResearch}
-            disabled={isStreaming}
+            disabled={isStreaming || isValidating}
           />
           <Label htmlFor="deep-research-mode">Deep Research Mode</Label>
         </div>
@@ -104,13 +134,25 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 flex flex-col gap-4">
           <Card className="flex-grow">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>AI Response</CardTitle>
+              {!isStreaming && response && (
+                <Button variant="outline" size="sm" onClick={handleValidate} disabled={isValidating}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {isValidating ? "Validating..." : "Validate Answer"}
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {response || "The AI's response will appear here."}
               </p>
+              {validationResponse && (
+                <div className="mt-4 border-t pt-4">
+                    <h3 className="font-semibold mb-2 text-primary">Validation Response:</h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{validationResponse}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -128,14 +170,6 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground">
                   The AIs step-by-step plan will be shown here.
                 </p>
-              )}
-               {toolMessages.length > 0 && (
-                <div className="mt-4 border-t pt-4">
-                  <h3 className="font-semibold mb-2">Tool Activity:</h3>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    {toolMessages.map((msg, i) => <p key={i}>{msg}</p>)}
-                  </div>
-                </div>
               )}
             </CardContent>
           </Card>
@@ -157,8 +191,8 @@ export default function DashboardPage() {
               <CardTitle>Context</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Contextual information will be displayed here.
+              <p className="text-muted-foreground whitespace-pre-wrap text-xs">
+                {finalContext || "Contextual information will be displayed here."}
               </p>
             </CardContent>
           </Card>
@@ -177,17 +211,17 @@ export default function DashboardPage() {
                     placeholder="Ask Cortex anything..."
                     className="min-h-[48px] rounded-2xl resize-none p-4 border border-neutral-400 shadow-sm pr-24"
                     {...field}
-                    disabled={isStreaming}
+                    disabled={isStreaming || isValidating}
                   />
                 </FormControl>
               </FormItem>
             )}
           />
           <div className="absolute top-3 right-3 flex gap-2">
-            <Button type="submit" size="icon" disabled={isStreaming}>
+            <Button type="submit" size="icon" disabled={isStreaming || isValidating}>
               <Send className="w-4 h-4" />
             </Button>
-            <Button type="button" size="icon" variant="ghost" disabled={isStreaming}>
+            <Button type="button" size="icon" variant="ghost" disabled={isStreaming || isValidating}>
               <Paperclip className="w-4 h-4" />
             </Button>
           </div>

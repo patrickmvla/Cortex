@@ -69,7 +69,6 @@ class OrchestrationService {
           data: "Performing internal search...",
         })
       );
-      // Pass the deepResearch flag to the RAG service
       const searchResults = await ragService.search({ text: prompt }, deepResearch);
       await stream.writeln(
         JSON.stringify({
@@ -154,6 +153,9 @@ class OrchestrationService {
       const result = await this.executeStep(step, prompt, deepResearch, stream);
       finalContext += JSON.stringify(result, null, 2) + "\n";
     }
+
+    // Stream the final context to the frontend for validation purposes
+    await stream.writeln(JSON.stringify({ type: "context", data: finalContext }));
 
     // Step 3: Synthesize the final answer
     await this.synthesizeAnswer(prompt, finalContext, stream);

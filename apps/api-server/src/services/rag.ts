@@ -1,11 +1,22 @@
 import { Pinecone } from "@pinecone-database/pinecone";
 import { VoyageAIClient, VoyageAI } from "voyageai";
 import { v4 as uuidv4 } from "uuid";
+import { createSparseVector } from "../lib/sparse-vector";
 
 // Define the structure for a multimodal query
 interface MultimodalQuery {
   text: string;
   imageBase64?: string; // e.g., "data:image/jpeg;base64,..."
+}
+
+interface EnrichedChunk {
+  text: string;
+  metadata: {
+    summary: string;
+    keywords: string[];
+    sourceUrl: string;
+    chunkNumber: number;
+  };
 }
 
 class RagService {
@@ -82,9 +93,7 @@ class RagService {
         .filter((e): e is number[] => e !== undefined) ?? [];
 
     if (embeddings.length !== chunks.length) {
-      throw new Error(
-        "Mismatch between number of chunks and embeddings returned"
-      );
+      throw new Error("Mismatch between number of chunks and embeddings returned");
     }
     return embeddings;
   }
@@ -93,28 +102,28 @@ class RagService {
     if (documents.length === 0) {
       return [];
     }
-
-    const docsToRerank = documents.map((doc) => doc.metadata.text);
-
+  
+    const docsToRerank = documents.map(doc => doc.metadata.text);
+  
     const rerankResult = await this.voyage.rerank({
       query: query,
       documents: docsToRerank,
       model: "rerank-lite-1",
       topK: 3,
     });
-
+  
     if (!rerankResult.data) {
       return documents; // Return original documents if reranking fails
     }
-
+  
     const rerankedDocs = rerankResult.data
-      .filter((result) => result.index !== undefined) // Ensure index is valid
-      .map((result) => {
+      .filter(result => result.index !== undefined) // Ensure index is valid
+      .map(result => {
         const originalDoc = documents[result.index!];
         originalDoc.score = result.relevanceScore;
         return originalDoc;
-      });
-
+    });
+  
     return rerankedDocs;
   }
 
@@ -123,10 +132,12 @@ class RagService {
     deepResearch: boolean = false
   ) {
     const queryEmbedding = await this.getQueryEmbedding({ text, imageBase64 });
+    const sparseVector = createSparseVector(text);
 
     const queryResponse = await this.index.query({
       vector: queryEmbedding,
-      topK: deepResearch ? 10 : 5, // Fetch more results if we're going to rerank
+      sparseVector: sparseVector,
+      topK: deepResearch ? 10 : 5,
       includeMetadata: true,
     });
 
@@ -137,21 +148,22 @@ class RagService {
     return queryResponse.matches;
   }
 
-  public async embedAndStore(
-    chunks: string[],
-    metadata: { sourceUrl: string }
-  ) {
-    const embeddings = await this.getDocumentEmbeddings(chunks);
+  public async embedAndStore(enrichedChunks: EnrichedChunk[]) {
+    const chunksText = enrichedChunks.map(chunk => chunk.text);
+    const embeddings = await this.getDocumentEmbeddings(chunksText);
 
-    const vectors = chunks.map((chunk, index) => ({
-      id: uuidv4(),
-      values: embeddings[index],
-      metadata: {
-        ...metadata,
-        text: chunk,
-        chunkNumber: index,
-      },
-    }));
+    const vectors = enrichedChunks.map((chunk, index) => {
+      const sparseVector = createSparseVector(chunk.text);
+      return {
+        id: uuidv4(),
+        values: embeddings[index],
+        sparseValues: sparseVector,
+        metadata: {
+          ...chunk.metadata,
+          text: chunk.text, // Ensure raw text is stored in metadata
+        },
+      };
+    });
 
     for (let i = 0; i < vectors.length; i += 100) {
       const batch = vectors.slice(i, i + 100);

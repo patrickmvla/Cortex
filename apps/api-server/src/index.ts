@@ -2,24 +2,26 @@ import { Hono } from 'hono';
 import auth from './routes/auth';
 import query from './routes/query';
 import documents from './routes/documents';
+import validate from './routes/validate';
 
 const app = new Hono();
 
-const routes = app
+export const routes = app
   .get('/', (c) => {
     return c.json({
       message: 'Hello Cortex!',
-      routes: ['/auth/register', '/auth/login', '/query', '/documents/upload'],
+      routes: [
+        '/auth/register',
+        '/auth/login',
+        '/query',
+        '/documents/upload',
+        '/validate',
+      ],
     });
   })
   .route('/auth', auth)
   .route('/query', query)
-  .route('/documents', documents);
+  .route('/documents', documents)
+  .route('/validate', validate);
 
-export default routes;
-// CORRECT HONO V4 TYPE EXPORT (NO $api NEEDED)
 export type ApiRoutes = typeof routes;
-
-// TYPE VALIDATION GUARD (PREVENTS FUTURE BREAKAGE)
-// import { type Hono } from 'hono';
-// const _typeCheck: Hono = routes;

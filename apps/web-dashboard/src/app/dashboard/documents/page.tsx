@@ -16,13 +16,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuthStore } from "@/hooks/use-auth-store";
+import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { InferResponseType } from "hono/client";
+
+// Infer the type of a single document from the API response
+type Document = InferResponseType<typeof api.documents.$get, 200>[number];
 
 export default function DocumentsPage() {
-  // Placeholder for fetching existing documents
-  const documents = [
-    { name: "product_spec_v1.pdf", size: "2.3MB", date: "2025-08-16" },
-    { name: "marketing_plan.md", size: "128KB", date: "2025-08-15" },
-  ];
+  const { token } = useAuthStore();
+
+  const { data: documents, isLoading, error } = useQuery({
+    queryKey: ["documents"],
+    queryFn: async () => {
+      const res = await api.documents.$get({}, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch documents");
+      }
+      return res.json();
+    },
+    enabled: !!token, // Only run the query if the user is authenticated
+  });
 
   return (
     <div className="grid gap-8">
@@ -40,18 +59,39 @@ export default function DocumentsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Size</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Date Added</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {documents.map((doc) => (
-                <TableRow key={doc.name}>
-                  <TableCell className="font-medium">{doc.name}</TableCell>
-                  <TableCell>{doc.size}</TableCell>
-                  <TableCell>{doc.date}</TableCell>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center">
+                    Loading documents...
+                  </TableCell>
+                </TableRow>
+              )}
+              {error && (
+                 <TableRow>
+                 <TableCell colSpan={3} className="text-center text-red-500">
+                   Error fetching documents. Please try again.
+                 </TableCell>
+               </TableRow>
+              )}
+              {documents && documents.map((doc: Document) => (
+                <TableRow key={doc.id}>
+                  <TableCell className="font-medium">{doc.title}</TableCell>
+                  <TableCell>{doc.sourceType}</TableCell>
+                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
+               {documents && documents.length === 0 && !isLoading && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center">
+                    You havent uploaded any documents yet.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
