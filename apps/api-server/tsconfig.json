@@ -3,14 +3,19 @@
   "compilerOptions": {
     "strict": true,
     "module": "esnext",
+    "composite": true,
     "moduleResolution": "bundler",
     "lib": ["esnext"],
     "types": ["bun-types"],
     "baseUrl": ".",
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
     "paths": {
       "drizzle-schema": ["../../packages/drizzle-schema/src"]
     }
   },
   "include": ["src/**/*.ts", "*.ts"],
-  "references": [{ "path": "../../packages/drizzle-schema" }]
+  "references": [{ "path": "../../packages/drizzle-schema" }],
+  "exclude": ["node_modules", "dist"]
 }

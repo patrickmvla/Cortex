@@ -1,3 +1,6 @@
+import { chunkText } from "../lib/chunker";
+import { ragService } from "./rag";
+
 interface JinaReadResult {
   title: string;
   url: string;
@@ -20,7 +23,7 @@ class IngestService {
     this.apiKey = process.env.JINA_API_KEY;
   }
 
-  public async loadAndParse(url: string): Promise<string | null> {
+  public async processUrl(url: string): Promise<void> {
     try {
       const response = await fetch(this.readerUrl, {
         method: 'POST',
@@ -37,10 +40,22 @@ class IngestService {
       }
 
       const data = (await response.json()) as JinaReadResponse;
-      return data.data.content; // Return the clean Markdown content
+      const content = data.data.content;
+
+      if (!content) {
+        console.warn(`No content found for URL: ${url}`);
+        return;
+      }
+
+      // 1. Chunk the parsed content
+      const chunks = chunkText(content);
+
+      // 2. Embed and store the chunks
+      await ragService.embedAndStore(chunks, { sourceUrl: url });
+
     } catch (error) {
       console.error(`Error ingesting document from ${url}:`, error);
-      return null;
+      throw new Error("Failed to process document");
     }
   }
 }

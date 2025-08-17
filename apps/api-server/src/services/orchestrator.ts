@@ -69,7 +69,8 @@ class OrchestrationService {
           data: "Performing internal search...",
         })
       );
-      const searchResults = await ragService.search({ text: prompt });
+      // Pass the deepResearch flag to the RAG service
+      const searchResults = await ragService.search({ text: prompt }, deepResearch);
       await stream.writeln(
         JSON.stringify({
           type: "tool-end",
@@ -81,16 +82,17 @@ class OrchestrationService {
 
     if (step.toLowerCase().includes("web")) {
       if (deepResearch) {
-        // Deep search is not yet fully integrated for synthesis.
-        // This part will be a placeholder for now.
         await stream.writeln(
-            JSON.stringify({
-                type: "tool-start",
-                data: "Performing deep research (synthesis pending)...",
-            })
+          JSON.stringify({
+            type: "tool-start",
+            data: "Performing deep research...",
+          })
         );
-        await stream.sleep(1000);
-        return "Deep research results are streamed separately and not yet used in final answer.";
+        await webSearchService.deepSearch(prompt, stream);
+        await stream.writeln(
+          JSON.stringify({ type: "tool-end", data: "Deep research complete." })
+        );
+        return "Deep research results were streamed.";
       } else {
         await stream.writeln(
           JSON.stringify({

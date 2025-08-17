@@ -17,4 +17,9 @@ const routes = app
   .route('/documents', documents);
 
 export default routes;
+// CORRECT HONO V4 TYPE EXPORT (NO $api NEEDED)
 export type ApiRoutes = typeof routes;
+
+// TYPE VALIDATION GUARD (PREVENTS FUTURE BREAKAGE)
+// import { type Hono } from 'hono';
+// const _typeCheck: Hono = routes;

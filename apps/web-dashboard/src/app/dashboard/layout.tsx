@@ -1,4 +1,4 @@
-import { CircleUser, Menu, Package2, Search } from "lucide-react";
+import { CircleUser, File, Home, Menu, Package2, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,10 +29,18 @@ export default function DashboardLayout({
             <span className="sr-only">Cortex</span>
           </Link>
           <Link
-            href="#"
-            className="text-foreground transition-colors hover:text-foreground"
+            href="/dashboard"
+            className="text-muted-foreground transition-colors hover:text-foreground"
           >
+            <Home className="h-4 w-4 mr-2 inline-block" />
             Dashboard
+          </Link>
+          <Link
+            href="/dashboard/documents"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <File className="h-4 w-4 mr-2 inline-block" />
+            Documents
           </Link>
         </nav>
         <Sheet>
@@ -55,8 +63,14 @@ export default function DashboardLayout({
                 <Package2 className="h-6 w-6" />
                 <span className="sr-only">Cortex</span>
               </Link>
-              <Link href="#" className="hover:text-foreground">
+              <Link href="/dashboard" className="hover:text-foreground">
                 Dashboard
+              </Link>
+              <Link
+                href="/dashboard/documents"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Documents
               </Link>
             </nav>
           </SheetContent>

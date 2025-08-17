@@ -1,5 +1,5 @@
 import { hc } from 'hono/client';
-import type routes from 'api-server';
+import {ApiRoutes} from 'api-server';
 
-export const apiClient = hc<typeof routes>('/');
+export const apiClient = hc<ApiRoutes>('');
 export type ApiClient = typeof apiClient;
