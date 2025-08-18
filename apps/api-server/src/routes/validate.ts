@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { fireworks } from '@ai-sdk/fireworks';
 import { streamText as honoStreamText } from 'hono/streaming';
 import { streamText } from 'ai';
+import { authMiddleware } from '../middleware/auth';
 
 const validate = new Hono();
 
@@ -19,7 +20,7 @@ You are an expert AI assistant. Your job is to synthesize a comprehensive, groun
 - This is a validation step, so be concise and stick to the facts presented in the context.
 `;
 
-validate.post('/', zValidator('json', validationSchema), async (c) => {
+validate.post('/', authMiddleware, zValidator('json', validationSchema), async (c) => {
   const { prompt, context } = c.req.valid('json');
 
   const { textStream } = await streamText({

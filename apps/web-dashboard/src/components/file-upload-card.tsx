@@ -12,39 +12,46 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/hooks/use-auth-store";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Upload } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export function FileUploadCard() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
+  const { token } = useAuthStore();
 
   const mutation = useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // The 'form' key is expected by the Hono RPC client for form data
-      const res = await api.documents.upload.$post({ form: { file } });
+      const res = await api.documents.upload.$post(
+        { form: { file } },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       if (!res.ok) {
-        throw new Error("File upload failed");
+        const errorData = await res.json();
+        throw new Error(errorData.error || "File upload failed");
       }
       return res.json();
     },
     onSuccess: () => {
-      // Invalidate and refetch the documents list after a successful upload
+      toast.success("File uploaded successfully!", {
+        description: "Ingestion has started in the background.",
+      });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       setSelectedFile(null);
-      // Clear the file input visually
       const fileInput = document.getElementById('document-upload') as HTMLInputElement;
       if (fileInput) {
         fileInput.value = "";
       }
     },
     onError: (error) => {
-      console.error("Upload error:", error);
-      // TODO: Add user-facing error handling (e.g., toast)
+      toast.error(error.message || "An unexpected error occurred during upload.");
     },
   });
 

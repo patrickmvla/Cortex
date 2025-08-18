@@ -6,7 +6,7 @@ import validate from './routes/validate';
 
 const app = new Hono();
 
-export const routes = app
+const routes = app
   .get('/', (c) => {
     return c.json({
       message: 'Hello Cortex!',
@@ -24,4 +24,10 @@ export const routes = app
   .route('/documents', documents)
   .route('/validate', validate);
 
-export type ApiRoutes = typeof routes;
+export default {
+  fetch: routes.fetch,
+  port: process.env.PORT || 8787,
+};
+
+export const appRoutes = routes;
+export type ApiRoutes = typeof appRoutes;

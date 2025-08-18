@@ -61,7 +61,7 @@ class IngestService {
     }
   }
 
-  public async processUrl(url: string): Promise<void> {
+  public async processUrl(url: string, userId: string): Promise<void> {
     try {
       const response = await fetch(this.readerUrl, {
         method: 'POST',
@@ -87,7 +87,6 @@ class IngestService {
 
       const chunks = chunkText(content);
       
-      // Enrich each chunk with metadata
       const enrichedChunks = await Promise.all(chunks.map(async (chunk, index) => {
         const metadata = await this.enrichChunk(chunk);
         return {
@@ -100,8 +99,8 @@ class IngestService {
         };
       }));
 
-      // Embed and store the enriched chunks
-      await ragService.embedAndStore(enrichedChunks);
+      // Embed and store the enriched chunks with the user's ID
+      await ragService.embedAndStore(enrichedChunks, userId);
 
     } catch (error) {
       console.error(`Error ingesting document from ${url}:`, error);

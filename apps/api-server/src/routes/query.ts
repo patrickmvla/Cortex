@@ -16,14 +16,12 @@ query.post('/', authMiddleware, zValidator('json', querySchema), async (c) => {
   const { prompt, deepResearch } = c.req.valid('json');
   const userId = c.var.userId; // Now available from the auth middleware
 
-  // TODO: Use the userId to scope the internal search to this user's documents.
-  console.log(`Query received from user: ${userId}`);
-
   return stream(c, async (stream) => {
     await orchestrator.run({
       prompt,
       deepResearch,
       stream,
+      userId, // Pass userId to the orchestrator
     });
   });
 });

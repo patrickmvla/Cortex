@@ -34,8 +34,15 @@ You are an expert AI assistant. Your job is to synthesize a comprehensive, groun
 
 - Use the provided context to answer the user's prompt.
 - Do not make up information. If the context does not provide an answer, state that.
-- Cite your sources where appropriate using [Source X] notation.
+- Cite your sources where appropriate using [Source X] notation, where X is the number of the source.
 `;
+
+interface Source {
+    type: 'internal' | 'web';
+    sourceUrl?: string;
+    title?: string;
+    content: string;
+}
 
 class OrchestrationService {
   constructor() {}
@@ -59,9 +66,10 @@ class OrchestrationService {
   private async executeStep(
     step: string,
     prompt: string,
+    userId: string,
     deepResearch: boolean,
     stream: StreamController
-  ) {
+  ): Promise<Source[]> {
     if (step.toLowerCase().includes("internal")) {
       await stream.writeln(
         JSON.stringify({
@@ -69,34 +77,26 @@ class OrchestrationService {
           data: "Performing internal search...",
         })
       );
-      const searchResults = await ragService.search({ text: prompt }, deepResearch);
+      const searchResults = await ragService.search({ text: prompt }, userId, deepResearch);
       await stream.writeln(
         JSON.stringify({
           type: "tool-end",
           data: `Found ${searchResults.length} relevant documents.`,
         })
       );
-      return searchResults;
+      return searchResults.map(match => ({
+          type: 'internal',
+          sourceUrl: match.metadata.sourceUrl,
+          title: `Internal Document: ${match.metadata.sourceUrl}`,
+          content: match.metadata.text,
+      }));
     }
 
     if (step.toLowerCase().includes("web")) {
-      if (deepResearch) {
         await stream.writeln(
           JSON.stringify({
             type: "tool-start",
-            data: "Performing deep research...",
-          })
-        );
-        await webSearchService.deepSearch(prompt, stream);
-        await stream.writeln(
-          JSON.stringify({ type: "tool-end", data: "Deep research complete." })
-        );
-        return "Deep research results were streamed.";
-      } else {
-        await stream.writeln(
-          JSON.stringify({
-            type: "tool-start",
-            data: "Performing normal web search...",
+            data: "Performing web search...",
           })
         );
         const searchResults = await webSearchService.normalSearch(prompt);
@@ -106,17 +106,25 @@ class OrchestrationService {
             data: `Found ${searchResults.length} web results.`,
           })
         );
-        return searchResults;
-      }
+        return searchResults.map(result => ({
+            type: 'web',
+            sourceUrl: result.url,
+            title: result.title,
+            content: result.content,
+        }));
     }
-    return `Step executed (placeholder for: ${step})`;
+    return [];
   }
 
   private async synthesizeAnswer(
     prompt: string,
-    context: string,
+    sources: Source[],
     stream: StreamController
   ) {
+    const context = sources.map((source, index) => 
+        `[Source ${index + 1}: ${source.title}]\n${source.content}`
+    ).join("\n\n---\n\n");
+
     const streamResponse = await groq.chat.completions.create({
       messages: [
         { role: "system", content: synthesisSystemPrompt },
@@ -139,7 +147,7 @@ class OrchestrationService {
     }
   }
 
-  async run({ prompt, deepResearch, stream }: OrchestratorInput) {
+  async run({ prompt, deepResearch, stream, userId }: OrchestratorInput) {
     // Step 1: Decompose the query into a plan
     const plan = await this.generatePlan(prompt);
     for (const step of plan) {
@@ -147,18 +155,23 @@ class OrchestrationService {
       await stream.sleep(200);
     }
 
-    // Step 2: Execute the plan
-    let finalContext = "";
+    // Step 2: Execute the plan and collect sources
+    let allSources: Source[] = [];
     for (const step of plan) {
-      const result = await this.executeStep(step, prompt, deepResearch, stream);
-      finalContext += JSON.stringify(result, null, 2) + "\n";
+      const sources = await this.executeStep(step, prompt, userId, deepResearch, stream);
+      allSources = [...allSources, ...sources];
+      // Stream sources to the frontend as they are found
+      for (const source of sources) {
+          await stream.writeln(JSON.stringify({ type: "source", data: source }));
+      }
     }
 
     // Stream the final context to the frontend for validation purposes
-    await stream.writeln(JSON.stringify({ type: "context", data: finalContext }));
+    const finalContextForValidation = allSources.map(s => s.content).join("\n\n");
+    await stream.writeln(JSON.stringify({ type: "context", data: finalContextForValidation }));
 
     // Step 3: Synthesize the final answer
-    await this.synthesizeAnswer(prompt, finalContext, stream);
+    await this.synthesizeAnswer(prompt, allSources, stream);
   }
 }
 

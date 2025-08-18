@@ -2,7 +2,12 @@
   "name": "cortex-monorepo",
   "private": true,
   "scripts": {
+    "dev": "pnpm --filter \"./apps/*\" --parallel dev",
     "api": "pnpm --filter api-server",
     "web": "pnpm --filter web-dashboard"
-  }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

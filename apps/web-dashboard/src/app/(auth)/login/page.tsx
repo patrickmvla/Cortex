@@ -25,6 +25,7 @@ import { InferRequestType } from "hono/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -51,17 +52,19 @@ export default function LoginPage() {
     mutationFn: async (values: RequestType) => {
       const res = await api.auth.login.$post({ json: values });
       if (!res.ok) {
-        throw new Error("Login failed");
+        // Throw an error to be caught by onError
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Login failed");
       }
       return res.json();
     },
     onSuccess: (data) => {
+      toast.success("Login successful!");
       setToken(data.token);
-      router.push("/dashboard"); // Redirect to a protected dashboard page
+      router.push("/dashboard");
     },
     onError: (error) => {
-      // TODO: Add user-facing error handling (e.g., toast)
-      console.error("Login error:", error);
+      toast.error(error.message || "An unexpected error occurred.");
     },
   });
 

@@ -25,6 +25,8 @@ import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { InferRequestType } from "hono/client";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -49,15 +51,19 @@ export default function RegisterPage() {
     mutationFn: async (values: RequestType) => {
       const res = await api.auth.register.$post({ json: values });
       if (!res.ok) {
-        throw new Error("Registration failed");
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Registration failed");
       }
       return res.json();
     },
     onSuccess: () => {
+      toast.success("Account created successfully!", {
+        description: "You can now log in with your credentials.",
+      });
       router.push("/login");
     },
     onError: (error) => {
-      console.error("Registration error:", error);
+      toast.error(error.message || "An unexpected error occurred.");
     },
   });
 
@@ -78,11 +84,11 @@ export default function RegisterPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <FormLabel htmlFor="first-name">First name</FormLabel>
+                <Label htmlFor="first-name">First name</Label>
                 <Input id="first-name" placeholder="Max" />
               </div>
               <div className="grid gap-2">
-                <FormLabel htmlFor="last-name">Last name</FormLabel>
+                <Label htmlFor="last-name">Last name</Label>
                 <Input id="last-name" placeholder="Robinson" />
               </div>
             </div>

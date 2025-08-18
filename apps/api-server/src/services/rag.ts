@@ -128,27 +128,31 @@ class RagService {
   }
 
   public async search(
-    { text, imageBase64 }: MultimodalQuery,
+    query: MultimodalQuery,
+    userId: string,
     deepResearch: boolean = false
   ) {
-    const queryEmbedding = await this.getQueryEmbedding({ text, imageBase64 });
-    const sparseVector = createSparseVector(text);
+    const queryEmbedding = await this.getQueryEmbedding(query);
+    const sparseVector = createSparseVector(query.text);
 
     const queryResponse = await this.index.query({
       vector: queryEmbedding,
       sparseVector: sparseVector,
       topK: deepResearch ? 10 : 5,
       includeMetadata: true,
+      filter: {
+        userId: { "$eq": userId }
+      }
     });
 
     if (deepResearch) {
-      return this.rerank(text, queryResponse.matches);
+      return this.rerank(query.text, queryResponse.matches);
     }
 
     return queryResponse.matches;
   }
 
-  public async embedAndStore(enrichedChunks: EnrichedChunk[]) {
+  public async embedAndStore(enrichedChunks: EnrichedChunk[], userId: string) {
     const chunksText = enrichedChunks.map(chunk => chunk.text);
     const embeddings = await this.getDocumentEmbeddings(chunksText);
 
@@ -160,7 +164,8 @@ class RagService {
         sparseValues: sparseVector,
         metadata: {
           ...chunk.metadata,
-          text: chunk.text, // Ensure raw text is stored in metadata
+          text: chunk.text,
+          userId: userId, // Add userId to metadata
         },
       };
     });

@@ -61,7 +61,7 @@ documents.post(
       });
 
       // Trigger the ingestion process asynchronously
-      ingestService.processUrl(publicUrl).catch(err => {
+      ingestService.processUrl(publicUrl, userId).catch(err => {
           console.error(`Background ingestion failed for ${publicUrl}:`, err);
       });
     } catch (error) {

@@ -27,14 +27,21 @@ type Document = InferResponseType<typeof api.documents.$get, 200>[number];
 export default function DocumentsPage() {
   const { token } = useAuthStore();
 
-  const { data: documents, isLoading, error } = useQuery({
+  const {
+    data: documents,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["documents"],
     queryFn: async () => {
-      const res = await api.documents.$get({}, {
-        headers: {
-            Authorization: `Bearer ${token}`
+      const res = await api.documents.$get(
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
       if (!res.ok) {
         throw new Error("Failed to fetch documents");
       }
@@ -50,9 +57,7 @@ export default function DocumentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>My Documents</CardTitle>
-          <CardDescription>
-            Manage your uploaded documents.
-          </CardDescription>
+          <CardDescription>Manage your uploaded documents.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -72,20 +77,23 @@ export default function DocumentsPage() {
                 </TableRow>
               )}
               {error && (
-                 <TableRow>
-                 <TableCell colSpan={3} className="text-center text-red-500">
-                   Error fetching documents. Please try again.
-                 </TableCell>
-               </TableRow>
-              )}
-              {documents && documents.map((doc: Document) => (
-                <TableRow key={doc.id}>
-                  <TableCell className="font-medium">{doc.title}</TableCell>
-                  <TableCell>{doc.sourceType}</TableCell>
-                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-red-500">
+                    Error fetching documents. Please try again.
+                  </TableCell>
                 </TableRow>
-              ))}
-               {documents && documents.length === 0 && !isLoading && (
+              )}
+              {documents &&
+                documents.map((doc: Document) => (
+                  <TableRow key={doc.id}>
+                    <TableCell className="font-medium">{doc.title}</TableCell>
+                    <TableCell>{doc.sourceType}</TableCell>
+                    <TableCell>
+                      {new Date(doc.createdAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              {documents && documents.length === 0 && !isLoading && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center">
                     You havent uploaded any documents yet.

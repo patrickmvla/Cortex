@@ -8,4 +8,5 @@ export interface OrchestratorInput {
   prompt: string;
   deepResearch: boolean;
   stream: StreamController;
+  userId: string;
 }
