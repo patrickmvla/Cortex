@@ -1,12 +1,10 @@
-import { hc } from 'hono/client';
+// in /lib/api.ts
 
-// Create client without explicit typing (fallback approach)
-export const api: any = hc(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+// 1. Import the shared client instance from your 'api-client' package
+import { api } from 'api-client';
 
-// But we can still provide some basic typing
-export type ApiClient = typeof api;
+// 2. Re-export it for use within your web-dashboard app
+export { api };
 
-// For better typing, you can also create a helper:
-export const createApi = (baseUrl: string) => {
-  return hc<any>(baseUrl);
-};
+// 3. You can also re-export the type if you need it elsewhere
+export type { ApiClient } from 'api-client';

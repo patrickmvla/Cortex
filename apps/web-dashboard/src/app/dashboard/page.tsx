@@ -24,14 +24,14 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface Source {
-  type: 'internal' | 'web';
+  type: "internal" | "web";
   sourceUrl?: string;
   title?: string;
   content: string;
 }
 
 interface StreamMessage {
-  type: 'plan' | 'response' | 'tool-start' | 'tool-end' | 'context' | 'source';
+  type: "plan" | "response" | "tool-start" | "tool-end" | "context" | "source";
   data: any;
 }
 
@@ -41,12 +41,14 @@ export default function DashboardPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [finalContext, setFinalContext] = useState("");
   const [validationResponse, setValidationResponse] = useState("");
-  const [highlightedSourceIndex, setHighlightedSourceIndex] = useState<number | null>(null);
+  const [highlightedSourceIndex, setHighlightedSourceIndex] = useState<
+    number | null
+  >(null);
   const [isContextModalOpen, setIsContextModalOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
-  const { token } = useAuthStore(); 
+  const { token } = useAuthStore();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -62,15 +64,21 @@ export default function DashboardPage() {
     setIsValidating(true);
     setValidationResponse("");
 
-    const res = await api.validate.$post({
-      json: {
-        prompt: currentPrompt,
-        context: finalContext,
+    const res = await api.validate.$post(
+      {
+        
+        json: {
+          prompt: currentPrompt,
+          context: finalContext,
+        },
       },
-      headers: { 
-        Authorization: `Bearer ${token}`,
+      {
+        
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    });
+    );
 
     if (!res.body) return;
     const reader = res.body.getReader();
@@ -94,15 +102,21 @@ export default function DashboardPage() {
     setFinalContext("");
     setValidationResponse("");
 
-    const res = await api.query.$post({
-      json: {
-        prompt: values.prompt,
-        deepResearch: deepResearch,
+    const res = await api.query.$post(
+      {
+        
+        json: {
+          prompt: values.prompt,
+          deepResearch: deepResearch,
+        },
       },
-      headers: { // Add auth header to query request
-        Authorization: `Bearer ${token}`,
+      {
+        
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    });
+    );
 
     if (!res.body) return;
 
@@ -142,7 +156,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <DeepDiveContext 
+      <DeepDiveContext
         isOpen={isContextModalOpen}
         onClose={() => setIsContextModalOpen(false)}
         context={finalContext}
@@ -167,7 +181,12 @@ export default function DashboardPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>AI Response</CardTitle>
                 {!isStreaming && response && (
-                  <Button variant="outline" size="sm" onClick={handleValidate} disabled={isValidating}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleValidate}
+                    disabled={isValidating}
+                  >
                     <Sparkles className="mr-2 h-4 w-4" />
                     {isValidating ? "Validating..." : "Validate Answer"}
                   </Button>
@@ -175,18 +194,24 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {response ? (
-                  <InteractiveResponse 
-                    response={response} 
-                    sources={sources} 
-                    onHighlight={setHighlightedSourceIndex} 
+                  <InteractiveResponse
+                    response={response}
+                    sources={sources}
+                    onHighlight={setHighlightedSourceIndex}
                   />
                 ) : (
-                  <p className="text-muted-foreground">The AIs response will appear here.</p>
+                  <p className="text-muted-foreground">
+                    The AIs response will appear here.
+                  </p>
                 )}
                 {validationResponse && (
                   <div className="mt-4 border-t pt-4">
-                      <h3 className="font-semibold mb-2 text-primary">Validation Response:</h3>
-                      <p className="text-muted-foreground whitespace-pre-wrap">{validationResponse}</p>
+                    <h3 className="font-semibold mb-2 text-primary">
+                      Validation Response:
+                    </h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {validationResponse}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -220,17 +245,17 @@ export default function DashboardPage() {
                 {sources.length > 0 ? (
                   <ul className="space-y-2">
                     {sources.map((source, index) => (
-                      <li 
-                        key={index} 
+                      <li
+                        key={index}
                         className={cn(
                           "text-sm p-2 rounded-md transition-colors",
                           highlightedSourceIndex === index ? "bg-blue-100" : ""
                         )}
                       >
-                        <a 
-                          href={source.sourceUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={source.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-500 hover:underline"
                           onMouseEnter={() => setHighlightedSourceIndex(index)}
                           onMouseLeave={() => setHighlightedSourceIndex(null)}
@@ -251,7 +276,11 @@ export default function DashboardPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Context</CardTitle>
                 {finalContext && (
-                  <Button variant="ghost" size="sm" onClick={() => setIsContextModalOpen(true)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsContextModalOpen(true)}
+                  >
                     <BookOpen className="mr-2 h-4 w-4" />
                     Explore
                   </Button>
@@ -259,7 +288,8 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground whitespace-pre-wrap text-xs line-clamp-4">
-                  {finalContext || "Contextual information will be displayed here."}
+                  {finalContext ||
+                    "Contextual information will be displayed here."}
                 </p>
               </CardContent>
             </Card>
@@ -285,10 +315,19 @@ export default function DashboardPage() {
               )}
             />
             <div className="absolute top-3 right-3 flex gap-2">
-              <Button type="submit" size="icon" disabled={isStreaming || isValidating}>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={isStreaming || isValidating}
+              >
                 <Send className="w-4 h-4" />
               </Button>
-              <Button type="button" size="icon" variant="ghost" disabled={isStreaming || isValidating}>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                disabled={isStreaming || isValidating}
+              >
                 <Paperclip className="w-4 h-4" />
               </Button>
             </div>

@@ -1,3 +1,4 @@
+// apps/api-server/src/routes/validate.ts
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
@@ -5,13 +6,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { streamText as honoStreamText } from 'hono/streaming';
 import { streamText } from 'ai';
 import { authMiddleware } from '../middleware/auth';
-
-const validate = new Hono();
-
-export const validationSchema = z.object({
-  prompt: z.string().min(1),
-  context: z.string().min(1),
-});
+import { validationSchema } from '../schemas/validate.schema';
 
 const synthesisSystemPrompt = `
 You are an expert AI assistant. Your job is to synthesize a comprehensive, grounded, and cited answer based on the user's prompt and the provided context.
@@ -20,20 +15,21 @@ You are an expert AI assistant. Your job is to synthesize a comprehensive, groun
 - This is a validation step, so be concise and stick to the facts presented in the context.
 `;
 
-validate.post('/', authMiddleware, zValidator('json', validationSchema), async (c) => {
-  const { prompt, context } = c.req.valid('json');
+const routes = new Hono()
+  .post('/', authMiddleware, zValidator('json', validationSchema), async (c) => {
+    const { prompt, context } = c.req.valid('json');
 
-  const { textStream } = await streamText({
-    model: fireworks('accounts/fireworks/models/firefunction-v2'),
-    system: synthesisSystemPrompt,
-    prompt: `Prompt: ${prompt}\n\nContext:\n${context}`,
+    const { textStream } = await streamText({
+      model: fireworks('accounts/fireworks/models/firefunction-v2'),
+      system: synthesisSystemPrompt,
+      prompt: `Prompt: ${prompt}\n\nContext:\n${context}`,
+    });
+
+    return honoStreamText(c, async (stream) => {
+      for await (const text of textStream) {
+        stream.write(text);
+      }
+    });
   });
 
-  return honoStreamText(c, async (stream) => {
-    for await (const text of textStream) {
-      stream.write(text);
-    }
-  });
-});
-
-export default validate;
+export default routes;

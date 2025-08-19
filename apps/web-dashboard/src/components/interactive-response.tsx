@@ -9,7 +9,7 @@ import {
 import React from "react";
 
 interface Source {
-  type: 'internal' | 'web';
+  type: "internal" | "web";
   sourceUrl?: string;
   title?: string;
   content: string;
@@ -21,7 +21,11 @@ interface InteractiveResponseProps {
   onHighlight: (index: number | null) => void;
 }
 
-export function InteractiveResponse({ response, sources, onHighlight }: InteractiveResponseProps) {
+export function InteractiveResponse({
+  response,
+  sources,
+  onHighlight,
+}: InteractiveResponseProps) {
   const parts = response.split(/(\[Source \d+\])/g);
 
   return (

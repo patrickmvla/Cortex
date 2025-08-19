@@ -1,13 +1,13 @@
-import type { Hono } from 'hono';
-import { z } from 'zod';
-import { uploadSchema } from '../routes/documents';
-import { registerSchema, loginSchema } from '../routes/auth';
-import { querySchema } from '../routes/query';
-import { validationSchema } from '../routes/validate';
+import type { Hono } from "hono";
+import { z } from "zod";
+import { uploadSchema } from "../schemas/documents.schema";
+import { registerSchema, loginSchema } from "../schemas/auth.schema";
+import { querySchema } from "../schemas/query.schema";
+import { validationSchema } from "../schemas/validate.schema";
 
 // Schema types for each route
 export type DocumentsSchema = {
-  '/': {
+  "/": {
     $get: {
       input: {};
       output: Array<{
@@ -18,54 +18,60 @@ export type DocumentsSchema = {
         sourceUrl: string;
         content: string;
         createdAt: string;
-        updatedAt: string;
+        // updatedAt: string;
       }>;
     };
   };
-  '/upload': {
+  "/upload": {
     $post: {
       input: {
         form: z.infer<typeof uploadSchema>;
       };
-      output: {
-        message: string;
-        fileUrl: string;
-      } | {
-        error: string;
-      };
+      output:
+        | {
+            message: string;
+            fileUrl: string;
+          }
+        | {
+            error: string;
+          };
     };
   };
 };
 
 export type AuthSchema = {
-  '/register': {
+  "/register": {
     $post: {
       input: {
         json: z.infer<typeof registerSchema>;
       };
-      output: {
-        message: string;
-      } | {
-        error: string;
-      };
+      output:
+        | {
+            message: string;
+          }
+        | {
+            error: string;
+          };
     };
   };
-  '/login': {
+  "/login": {
     $post: {
       input: {
         json: z.infer<typeof loginSchema>;
       };
-      output: {
-        token: string;
-      } | {
-        error: string;
-      };
+      output:
+        | {
+            token: string;
+          }
+        | {
+            error: string;
+          };
     };
   };
 };
 
 export type QuerySchema = {
-  '/': {
+  "/": {
     $post: {
       input: {
         json: z.infer<typeof querySchema>;
@@ -76,7 +82,7 @@ export type QuerySchema = {
 };
 
 export type ValidateSchema = {
-  '/': {
+  "/": {
     $post: {
       input: {
         json: z.infer<typeof validationSchema>;
@@ -88,10 +94,10 @@ export type ValidateSchema = {
 
 // Full schema type
 export type AppSchema = {
-  '/documents': DocumentsSchema;
-  '/auth': AuthSchema;
-  '/query': QuerySchema;
-  '/validate': ValidateSchema;
+  "/documents": DocumentsSchema;
+  "/auth": AuthSchema;
+  "/query": QuerySchema;
+  "/validate": ValidateSchema;
 };
 
 // Extended Hono type

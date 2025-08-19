@@ -1,3 +1,4 @@
+// apps/api-server/src/routes/auth.ts
 import { Hono } from "hono";
 import { db } from "../db";
 import { users } from "drizzle-schema";
@@ -5,64 +6,52 @@ import { hash, compare } from "bcryptjs";
 import { sign } from "hono/jwt";
 import { eq } from "drizzle-orm";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
+import { registerSchema, loginSchema } from "../schemas/auth.schema";
 
-const auth = new Hono();
+const routes = new Hono()
+  .post("/register", zValidator("json", registerSchema), async (c) => {
+    const { email, password } = c.req.valid("json");
 
-export const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+    const hashedPassword = await hash(password, 12);
+    const userId = crypto.randomUUID();
 
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
+    try {
+      await db.insert(users).values({
+        id: userId,
+        email,
+        hashedPassword,
+      });
+    } catch (error) {
+      return c.json({ error: "User already exists" }, 409);
+    }
 
-auth.post("/register", zValidator("json", registerSchema), async (c) => {
-  const { email, password } = c.req.valid("json");
+    return c.json({ message: "User registered successfully" }, 201);
+  })
+  .post("/login", zValidator("json", loginSchema), async (c) => {
+    const { email, password } = c.req.valid("json");
 
-  const hashedPassword = await hash(password, 12);
-  const userId = crypto.randomUUID();
-
-  try {
-    await db.insert(users).values({
-      id: userId,
-      email,
-      hashedPassword,
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
     });
-  } catch (error) {
-    return c.json({ error: "User already exists" }, 409);
-  }
 
-  return c.json({ message: "User registered successfully" }, 201);
-});
+    if (!user || !user.hashedPassword) {
+      return c.json({ error: "Invalid credentials" }, 401);
+    }
 
-auth.post("/login", zValidator("json", loginSchema), async (c) => {
-  const { email, password } = c.req.valid("json");
+    const isPasswordValid = await compare(password, user.hashedPassword);
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.email, email),
+    if (!isPasswordValid) {
+      return c.json({ error: "Invalid credentials" }, 401);
+    }
+
+    const payload = {
+      sub: user.id,
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+    };
+    const secret = process.env.JWT_SECRET!;
+    const token = await sign(payload, secret);
+
+    return c.json({ token });
   });
 
-  if (!user || !user.hashedPassword) {
-    return c.json({ error: "Invalid credentials" }, 401);
-  }
-
-  const isPasswordValid = await compare(password, user.hashedPassword);
-
-  if (!isPasswordValid) {
-    return c.json({ error: "Invalid credentials" }, 401);
-  }
-
-  const payload = {
-    sub: user.id,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
-  };
-  const secret = process.env.JWT_SECRET!;
-  const token = await sign(payload, secret);
-
-  return c.json({ token });
-});
-
-export default auth;
+export default routes;

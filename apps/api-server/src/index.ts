@@ -1,10 +1,9 @@
 import { Hono } from 'hono';
-import auth from './routes/auth';
-import query from './routes/query';
-import documents from './routes/documents';
-import validate from './routes/validate';
 import { cors } from 'hono/cors';
-import type { AppTypeExtended } from './types/routes';
+import auth from './routes/auth';
+import documents from './routes/documents';
+import query from './routes/query';
+import validate from './routes/validate';
 
 const app = new Hono();
 
@@ -24,4 +23,4 @@ export default {
 };
 
 export const appRoutes = routes;
-export type AppType = AppTypeExtended;
+export type AppType = typeof appRoutes; 

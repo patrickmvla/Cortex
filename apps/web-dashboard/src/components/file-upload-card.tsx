@@ -35,7 +35,12 @@ export function FileUploadCard() {
       );
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "File upload failed");
+
+        if ("error" in errorData) {
+          throw new Error(errorData.error || "File upload failed");
+        }
+
+        throw new Error("An unknown upload error occurred");
       }
       return res.json();
     },
@@ -45,13 +50,17 @@ export function FileUploadCard() {
       });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       setSelectedFile(null);
-      const fileInput = document.getElementById('document-upload') as HTMLInputElement;
+      const fileInput = document.getElementById(
+        "document-upload"
+      ) as HTMLInputElement;
       if (fileInput) {
         fileInput.value = "";
       }
     },
     onError: (error) => {
-      toast.error(error.message || "An unexpected error occurred during upload.");
+      toast.error(
+        error.message || "An unexpected error occurred during upload."
+      );
     },
   });
 
@@ -80,7 +89,11 @@ export function FileUploadCard() {
         <CardContent>
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="document-upload">Document</Label>
-            <Input id="document-upload" type="file" onChange={handleFileChange} />
+            <Input
+              id="document-upload"
+              type="file"
+              onChange={handleFileChange}
+            />
           </div>
           {selectedFile && (
             <p className="text-sm text-muted-foreground mt-2">
