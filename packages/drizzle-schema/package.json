@@ -9,10 +9,14 @@
   },
   "scripts": {},
   "peerDependencies": {
-    "drizzle-orm": "*"
+    "drizzle-orm": ">=0.31.2 <0.32.0"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": false
+    }
   },
   "devDependencies": {
-    "drizzle-orm": "^0.31.2",
     "typescript": "^5.4.5"
   }
 }

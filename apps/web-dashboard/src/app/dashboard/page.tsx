@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
-  const { token } = useAuthStore(); // Get the token from the store
+  const { token } = useAuthStore(); 
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -67,7 +67,7 @@ export default function DashboardPage() {
         prompt: currentPrompt,
         context: finalContext,
       },
-      headers: { // Add auth header to validate request
+      headers: { 
         Authorization: `Bearer ${token}`,
       }
     });

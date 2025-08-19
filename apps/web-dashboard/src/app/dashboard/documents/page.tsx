@@ -47,7 +47,7 @@ export default function DocumentsPage() {
       }
       return res.json();
     },
-    enabled: !!token, // Only run the query if the user is authenticated
+    enabled: !!token,
   });
 
   return (

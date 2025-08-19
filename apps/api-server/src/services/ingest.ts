@@ -35,9 +35,10 @@ class IngestService {
   private readerUrl = "https://r.jina.ai/";
 
   constructor() {
-    // Get your Jina AI API key for free: https://jina.ai/?sui=apikey
     if (!process.env.JINA_API_KEY || !process.env.GROQ_API_KEY) {
-      throw new Error("Missing JINA_API_KEY or GROQ_API_KEY environment variable");
+      throw new Error(
+        "Missing JINA_API_KEY or GROQ_API_KEY environment variable"
+      );
     }
     this.apiKey = process.env.JINA_API_KEY;
   }
@@ -56,7 +57,7 @@ class IngestService {
       return JSON.parse(content);
     } catch (error) {
       console.error("Error enriching chunk:", error);
-      // Return empty metadata on failure
+
       return { summary: "", keywords: [] };
     }
   }
@@ -64,17 +65,19 @@ class IngestService {
   public async processUrl(url: string, userId: string): Promise<void> {
     try {
       const response = await fetch(this.readerUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Accept": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: "application/json",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ url }),
       });
 
       if (!response.ok) {
-        throw new Error(`Jina Reader API request failed with status ${response.status}`);
+        throw new Error(
+          `Jina Reader API request failed with status ${response.status}`
+        );
       }
 
       const data = (await response.json()) as JinaReadResponse;
@@ -86,22 +89,22 @@ class IngestService {
       }
 
       const chunks = chunkText(content);
-      
-      const enrichedChunks = await Promise.all(chunks.map(async (chunk, index) => {
-        const metadata = await this.enrichChunk(chunk);
-        return {
-          text: chunk,
-          metadata: {
-            ...metadata,
-            sourceUrl: url,
-            chunkNumber: index,
-          }
-        };
-      }));
 
-      // Embed and store the enriched chunks with the user's ID
+      const enrichedChunks = await Promise.all(
+        chunks.map(async (chunk, index) => {
+          const metadata = await this.enrichChunk(chunk);
+          return {
+            text: chunk,
+            metadata: {
+              ...metadata,
+              sourceUrl: url,
+              chunkNumber: index,
+            },
+          };
+        })
+      );
+
       await ragService.embedAndStore(enrichedChunks, userId);
-
     } catch (error) {
       console.error(`Error ingesting document from ${url}:`, error);
       throw new Error("Failed to process document");

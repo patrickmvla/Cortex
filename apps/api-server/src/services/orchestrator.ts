@@ -4,7 +4,9 @@ import {
   StreamController,
 } from "./orchestrator.types";
 import { ragService } from "./rag";
+import type { RagSearchMatch } from "./rag";
 import { webSearchService } from "./web-search";
+import type { JinaSearchResult } from "./web-search";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -77,14 +79,15 @@ class OrchestrationService {
           data: "Performing internal search...",
         })
       );
-      const searchResults = await ragService.search({ text: prompt }, userId, deepResearch);
+      const searchResults: RagSearchMatch[] =
+        await ragService.search({ text: prompt }, userId, deepResearch);
       await stream.writeln(
         JSON.stringify({
           type: "tool-end",
           data: `Found ${searchResults.length} relevant documents.`,
         })
       );
-      return searchResults.map(match => ({
+      return searchResults.map((match) => ({
           type: 'internal',
           sourceUrl: match.metadata.sourceUrl,
           title: `Internal Document: ${match.metadata.sourceUrl}`,
@@ -99,14 +102,15 @@ class OrchestrationService {
             data: "Performing web search...",
           })
         );
-        const searchResults = await webSearchService.normalSearch(prompt);
+        const searchResults: JinaSearchResult[] =
+          await webSearchService.normalSearch(prompt);
         await stream.writeln(
           JSON.stringify({
             type: "tool-end",
             data: `Found ${searchResults.length} web results.`,
           })
         );
-        return searchResults.map(result => ({
+        return searchResults.map((result) => ({
             type: 'web',
             sourceUrl: result.url,
             title: result.title,

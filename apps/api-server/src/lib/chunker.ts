@@ -4,8 +4,8 @@ interface ChunkerOptions {
 }
 
 const defaultOptions: ChunkerOptions = {
-  chunkSize: 1024, // Target size of each chunk in characters
-  chunkOverlap: 200, // Number of characters to overlap between chunks
+  chunkSize: 1024,
+  chunkOverlap: 200,
 };
 
 export function chunkText(

@@ -8,7 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 
 const validate = new Hono();
 
-const validationSchema = z.object({
+export const validationSchema = z.object({
   prompt: z.string().min(1),
   context: z.string().min(1),
 });

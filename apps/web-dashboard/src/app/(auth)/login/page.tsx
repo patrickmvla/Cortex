@@ -52,7 +52,7 @@ export default function LoginPage() {
     mutationFn: async (values: RequestType) => {
       const res = await api.auth.login.$post({ json: values });
       if (!res.ok) {
-        // Throw an error to be caught by onError
+        
         const errorData = await res.json();
         throw new Error(errorData.error || "Login failed");
       }

@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter \"./apps/*\" --parallel dev",
+    "build": "pnpm --filter \"./apps/*\" --parallel build",
     "api": "pnpm --filter api-server",
     "web": "pnpm --filter web-dashboard"
   },

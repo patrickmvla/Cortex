@@ -3,13 +3,12 @@ import { VoyageAIClient, VoyageAI } from "voyageai";
 import { v4 as uuidv4 } from "uuid";
 import { createSparseVector } from "../lib/sparse-vector";
 
-// Define the structure for a multimodal query
-interface MultimodalQuery {
+export interface MultimodalQuery {
   text: string;
-  imageBase64?: string; // e.g., "data:image/jpeg;base64,..."
+  imageBase64?: string;
 }
 
-interface EnrichedChunk {
+export interface EnrichedChunk {
   text: string;
   metadata: {
     summary: string;
@@ -19,10 +18,23 @@ interface EnrichedChunk {
   };
 }
 
+export interface RagSearchMatch {
+  id?: string;
+  score?: number;
+  metadata: {
+    text: string;
+    sourceUrl?: string;
+    summary?: string;
+    keywords?: string[];
+    chunkNumber?: number;
+    userId?: string;
+  };
+}
+
 class RagService {
   private voyage: VoyageAIClient;
   private pinecone: Pinecone;
-  private index: any; // Pinecone doesn't export a clean Index type for this context
+  private index: any;
 
   constructor() {
     if (
@@ -93,37 +105,42 @@ class RagService {
         .filter((e): e is number[] => e !== undefined) ?? [];
 
     if (embeddings.length !== chunks.length) {
-      throw new Error("Mismatch between number of chunks and embeddings returned");
+      throw new Error(
+        "Mismatch between number of chunks and embeddings returned"
+      );
     }
     return embeddings;
   }
 
-  private async rerank(query: string, documents: any[]): Promise<any[]> {
+  private async rerank(
+    query: string,
+    documents: RagSearchMatch[]
+  ): Promise<RagSearchMatch[]> {
     if (documents.length === 0) {
       return [];
     }
-  
-    const docsToRerank = documents.map(doc => doc.metadata.text);
-  
+
+    const docsToRerank = documents.map((doc) => doc.metadata.text);
+
     const rerankResult = await this.voyage.rerank({
       query: query,
       documents: docsToRerank,
       model: "rerank-lite-1",
       topK: 3,
     });
-  
+
     if (!rerankResult.data) {
-      return documents; // Return original documents if reranking fails
+      return documents;
     }
-  
-    const rerankedDocs = rerankResult.data
-      .filter(result => result.index !== undefined) // Ensure index is valid
-      .map(result => {
+
+    const rerankedDocs: RagSearchMatch[] = rerankResult.data
+      .filter((result) => result.index !== undefined)
+      .map((result) => {
         const originalDoc = documents[result.index!];
         originalDoc.score = result.relevanceScore;
         return originalDoc;
-    });
-  
+      });
+
     return rerankedDocs;
   }
 
@@ -131,7 +148,7 @@ class RagService {
     query: MultimodalQuery,
     userId: string,
     deepResearch: boolean = false
-  ) {
+  ): Promise<RagSearchMatch[]> {
     const queryEmbedding = await this.getQueryEmbedding(query);
     const sparseVector = createSparseVector(query.text);
 
@@ -141,19 +158,17 @@ class RagService {
       topK: deepResearch ? 10 : 5,
       includeMetadata: true,
       filter: {
-        userId: { "$eq": userId }
-      }
+        userId: { $eq: userId },
+      },
     });
 
-    if (deepResearch) {
-      return this.rerank(query.text, queryResponse.matches);
-    }
-
-    return queryResponse.matches;
+    const matches = (queryResponse.matches ?? []) as RagSearchMatch[];
+    if (deepResearch) return this.rerank(query.text, matches);
+    return matches;
   }
 
   public async embedAndStore(enrichedChunks: EnrichedChunk[], userId: string) {
-    const chunksText = enrichedChunks.map(chunk => chunk.text);
+    const chunksText = enrichedChunks.map((chunk) => chunk.text);
     const embeddings = await this.getDocumentEmbeddings(chunksText);
 
     const vectors = enrichedChunks.map((chunk, index) => {
@@ -165,7 +180,7 @@ class RagService {
         metadata: {
           ...chunk.metadata,
           text: chunk.text,
-          userId: userId, // Add userId to metadata
+          userId: userId,
         },
       };
     });

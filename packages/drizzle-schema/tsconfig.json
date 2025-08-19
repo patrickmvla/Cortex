@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "module": "esnext",
+    "outDir": "./dist",
     "moduleResolution": "bundler",
     "lib": ["esnext"],
     "composite": true
